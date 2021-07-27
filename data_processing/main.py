@@ -5,6 +5,8 @@ import json
 from os import walk
 from os import listdir
 from os.path import isfile, join
+
+import pandas as pd
 from numpy import genfromtxt
 from imu_calibration import *
 
@@ -20,7 +22,7 @@ def get_available_sensors(path):
     all_file_names = next(walk(path), (None, None, []))[2]
     for file_name in all_file_names:
         parts = file_name.split('-')
-        if len(parts) != 4:
+        if len(parts) < 4:
             continue
         file_type = parts[0]
         imu = parts[1]
@@ -35,7 +37,7 @@ def get_files(path, imu):
     all_file_names = next(walk(path), (None, None, []))[2]
     for file_name in all_file_names:
         parts = file_name.split('-')
-        if len(parts) != 4:
+        if len(parts) < 4:
             continue
         file_type = parts[0]
         imu_param = parts[1]
@@ -87,8 +89,7 @@ def show_data(data, times, imu, sensor):
     plt.show()
 
 
-def calculate_calibration_parameters():
-    path = "../../Данные_с_центрифуги_ЦФ-18/data_08.07.2021-boltanka/data/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+def calculate_calibration_parameters(path):
     accel_range = AccelRange.ACCEL_RANGE_16G
     gyro_range = GyroRange.GYRO_RANGE_2000DPS
 
@@ -125,15 +126,85 @@ def calculate_calibration_parameters():
         json.dump(imu_calibration_params, outfile)
 
 
-def apply_calibration_parameters():
-    imu_calibration_params = {}
+def read_and_concat_csv(path, imu):
+    df_list = []
+    file_names = get_files(path, imu)
+    for pack_id, name in file_names.items():
+        df = pd.read_csv(path + name, dtype={'ax': np.float64, 'ay': np.float64, 'az': np.float64,
+                                             'gx': np.float64, 'gy': np.float64, 'gz': np.float64,
+                                             'mx': np.float64, 'my': np.float64, 'mz': np.float64})
+        df_list.append(df)
+    data = pd.concat(df_list)
+    return data
+
+
+def apply_calibration(data, calibration_params):
+    accel_params = calibration_params["accelerometer"]
+    a_scale = accel_params["scale_factor"]
+    a_bias = accel_params["bias"]
+    a_sens = accel_params["sensitivity"]
+    gyro_params = calibration_params["gyroscope"]
+    g_scale = gyro_params["scale_factor"]
+    g_bias = gyro_params["bias"]
+    g_sens = gyro_params["sensitivity"]
+    for index, row in data.iterrows():
+        data.at[index, 'ax'] = ((row["ax"] * a_scale) - a_bias["x"]) * a_sens["x"]
+        data.at[index, 'ay'] = ((row["ay"] * a_scale) - a_bias["y"]) * a_sens["y"]
+        data.at[index, 'az'] = ((row["az"] * a_scale) - a_bias["z"]) * a_sens["z"]
+        data.at[index, 'gx'] = ((row["gx"] * g_scale) - g_bias["x"]) * g_sens["x"]
+        data.at[index, 'gy'] = ((row["gy"] * g_scale) - g_bias["y"]) * g_sens["y"]
+        data.at[index, 'gz'] = ((row["gz"] * g_scale) - g_bias["z"]) * g_sens["z"]
+
+
+def transform_data(path, start, end, out_file):
     with open('imu_calibration_parameters.json') as json_file:
         imu_calibration_params = json.load(json_file)
+        sensors = get_available_sensors(path)
+        for imu in sensors:
+            sub_data = read_and_concat_csv(path, imu)
+            sub_data = sub_data.iloc[start:end]
+            apply_calibration(sub_data, imu_calibration_params[imu])
+            sub_data.to_csv(f"imu{imu}-{out_file}", index=False)
+
+
+def data_preview(path, start=0, end=0):
+    sensors = get_available_sensors(path)
+    for imu in sensors:
+        file_names = get_files(path, imu)
+        data_raw, time_sec_raw = get_data_from_files(path, file_names.values())
+        if start > 0 and end > 0:
+            data_raw = data_raw[start:end, :]
+        a_ids = [3, 4, 5]
+        accel = {"title": "Accelerometer", "ids": a_ids}
+        show_data(data_raw, [*range(len(data_raw))], imu, accel)
 
 
 def main():
-    calculate_calibration_parameters()
-    apply_calibration_parameters()
+    # calibration_data = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    # calculate_calibration_parameters(calibration_data)
+
+    # boltanka1 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    # transform_data(boltanka1, start=50260, end=88600, out_file="boltanka-08.07.2021-high-amplitude.csv")
+
+    # boltanka2 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
+    # data_preview(boltanka2, start=7335, end=44100)
+    # transform_data(boltanka2, start=7335, end=44100, out_file="boltanka-08.07.2021-low-amplitude.csv")
+
+    # boltanka3 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka1/"
+    # data_preview(boltanka3, start=23485, end=41200)
+    # transform_data(boltanka3, start=23485, end=41200, out_file="boltanka-06.07.2021-1.1.csv")
+    # data_preview(boltanka3, start=61200, end=105050)
+    # transform_data(boltanka3, start=61200, end=105050, out_file="boltanka-06.07.2021-1.2.csv")
+
+    # boltanka5 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka2/"
+    # data_preview(boltanka5, start=10200, end=51860)
+    # transform_data(boltanka5, start=10200, end=51860, out_file="boltanka-06.07.2021-2.1.csv")
+
+    boltanka6 = "../data_02.07.2021-boltanka/raw_cf18_data_preformat-boltanka/"
+    # data_preview(boltanka6, start=226400, end=242600)
+    transform_data(boltanka6, start=226400, end=242600, out_file="boltanka-02.07.2021-1.1.csv")
+    # data_preview(boltanka6, start=465000, end=485250)
+    transform_data(boltanka6, start=465000, end=485250, out_file="boltanka-02.07.2021-1.2.csv")
 
 
 if __name__ == '__main__':
