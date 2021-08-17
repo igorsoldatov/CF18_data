@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import collections
 import json
 from os import walk
+from datetime import datetime
 from os import listdir
 from os.path import isfile, join
 
@@ -46,6 +47,23 @@ def get_files(path, imu):
             file_names[pack_id] = file_name
     file_names_sorted = collections.OrderedDict(sorted(file_names.items()))
     return file_names_sorted
+
+
+def get_full_data_from_files(path, imu_files):
+    times = []
+    data = None
+    for num, file_name in enumerate(imu_files):
+        df = pd.read_csv(path + file_name, header=0, skiprows=0, delimiter=',')
+        data_tmp = genfromtxt(path + file_name, delimiter=',', skip_header=1)
+        if data is None:
+            data = data_tmp
+        else:
+            data = np.concatenate([data, data_tmp])
+        for index, row in df.iterrows():
+            date_time_obj = datetime.strptime(row['server_time'], '%Y-%m-%dT%H:%M:%S.%f')
+            times.append(date_time_obj)
+
+    return data, times
 
 
 def get_data_from_files(path, imu_files):
@@ -139,6 +157,7 @@ def read_and_concat_csv(path, imu):
 
 
 def apply_calibration(data, calibration_params):
+    data.reset_index(drop=True, inplace=True)
     accel_params = calibration_params["accelerometer"]
     a_scale = accel_params["scale_factor"]
     a_bias = accel_params["bias"]
@@ -171,34 +190,38 @@ def data_preview(path, start=0, end=0):
     sensors = get_available_sensors(path)
     for imu in sensors:
         file_names = get_files(path, imu)
-        data_raw, time_sec_raw = get_data_from_files(path, file_names.values())
+        data_raw, times = get_full_data_from_files(path, file_names.values())
+        # data_raw, time_sec_raw = get_data_from_files(path, file_names.values())
         if start > 0 and end > 0:
             data_raw = data_raw[start:end, :]
+            times = times[start:end]
         a_ids = [3, 4, 5]
         accel = {"title": "Accelerometer", "ids": a_ids}
-        show_data(data_raw, [*range(len(data_raw))], imu, accel)
+        # show_data(data_raw, [*range(len(data_raw))], imu, accel)
+        show_data(data_raw, times, imu, accel)
 
 
 def main():
     # calibration_data = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
     # calculate_calibration_parameters(calibration_data)
 
-    # boltanka1 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
-    # transform_data(boltanka1, start=50260, end=88600, out_file="boltanka-08.07.2021-high-amplitude.csv")
+    boltanka1 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    # data_preview(boltanka1, start=50260, end=88600)
+    transform_data(boltanka1, start=50260, end=88600, out_file="boltanka-08.07.2021-high-amplitude.csv")
 
-    # boltanka2 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
+    boltanka2 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
     # data_preview(boltanka2, start=7335, end=44100)
-    # transform_data(boltanka2, start=7335, end=44100, out_file="boltanka-08.07.2021-low-amplitude.csv")
+    transform_data(boltanka2, start=7335, end=44100, out_file="boltanka-08.07.2021-low-amplitude.csv")
 
-    # boltanka3 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka1/"
+    boltanka3 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka1/"
     # data_preview(boltanka3, start=23485, end=41200)
-    # transform_data(boltanka3, start=23485, end=41200, out_file="boltanka-06.07.2021-1.1.csv")
+    transform_data(boltanka3, start=23485, end=41200, out_file="boltanka-06.07.2021-1.1.csv")
     # data_preview(boltanka3, start=61200, end=105050)
-    # transform_data(boltanka3, start=61200, end=105050, out_file="boltanka-06.07.2021-1.2.csv")
+    transform_data(boltanka3, start=61200, end=105050, out_file="boltanka-06.07.2021-1.2.csv")
 
-    # boltanka5 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka2/"
+    boltanka5 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka2/"
     # data_preview(boltanka5, start=10200, end=51860)
-    # transform_data(boltanka5, start=10200, end=51860, out_file="boltanka-06.07.2021-2.1.csv")
+    transform_data(boltanka5, start=10200, end=51860, out_file="boltanka-06.07.2021-2.1.csv")
 
     boltanka6 = "../data_02.07.2021-boltanka/raw_cf18_data_preformat-boltanka/"
     # data_preview(boltanka6, start=226400, end=242600)
