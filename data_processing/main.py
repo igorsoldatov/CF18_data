@@ -190,15 +190,22 @@ def data_preview(path, start=0, end=0):
     sensors = get_available_sensors(path)
     for imu in sensors:
         file_names = get_files(path, imu)
-        data_raw, times = get_full_data_from_files(path, file_names.values())
-        # data_raw, time_sec_raw = get_data_from_files(path, file_names.values())
+        # data_raw, times = get_full_data_from_files(path, file_names.values())
+        data_raw, time_sec_raw = get_data_from_files(path, file_names.values())
         if start > 0 and end > 0:
             data_raw = data_raw[start:end, :]
             times = times[start:end]
         a_ids = [3, 4, 5]
         accel = {"title": "Accelerometer", "ids": a_ids}
-        # show_data(data_raw, [*range(len(data_raw))], imu, accel)
-        show_data(data_raw, times, imu, accel)
+        show_data(data_raw, [*range(len(data_raw))], imu, accel)
+        # show_data(data_raw, times, imu, accel)
+
+
+def data_preview_calibrated(path, file, imu):
+    data_raw, times = get_full_data_from_files(path, [file])
+    a_ids = [3, 4, 5]
+    accel = {"title": "Accelerometer", "ids": a_ids}
+    show_data(data_raw, times, imu, accel)
 
 
 def main():
@@ -222,7 +229,7 @@ def main():
     boltanka5 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka2/"
     # data_preview(boltanka5, start=10200, end=51860)
     transform_data(boltanka5, start=10200, end=51860, out_file="boltanka-06.07.2021-2.1.csv")
-
+    
     boltanka6 = "../data_02.07.2021-boltanka/raw_cf18_data_preformat-boltanka/"
     # data_preview(boltanka6, start=226400, end=242600)
     transform_data(boltanka6, start=226400, end=242600, out_file="boltanka-02.07.2021-1.1.csv")
@@ -232,3 +239,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # data_preview_calibrated("../all_preprocessed_data/", "imu0-boltanka-08.07.2021-high-amplitude.csv", 0)
