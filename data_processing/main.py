@@ -229,7 +229,7 @@ def main():
     boltanka5 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka2/"
     # data_preview(boltanka5, start=10200, end=51860)
     transform_data(boltanka5, start=10200, end=51860, out_file="boltanka-06.07.2021-2.1.csv")
-    
+
     boltanka6 = "../data_02.07.2021-boltanka/raw_cf18_data_preformat-boltanka/"
     # data_preview(boltanka6, start=226400, end=242600)
     transform_data(boltanka6, start=226400, end=242600, out_file="boltanka-02.07.2021-1.1.csv")
