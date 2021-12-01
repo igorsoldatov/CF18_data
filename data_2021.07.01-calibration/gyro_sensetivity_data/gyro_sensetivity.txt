@@ -1,0 +1,22 @@
+5 оборотов, против часовой стрелки
+D:\PROJECTS\CF18_data\data_processing\venv\Scripts\python.exe D:/PROJECTS/CF18_data/data_processing/main.py
+IMU 0 sensitivity: [0.9415031676618354, 0.9308876711113078, 0.9142111713553867]
+IMU 1 sensitivity: [0.9416096965648597, 0.939932425854266, 0.923421306022056]
+IMU 2 sensitivity: [0.9349857442569659, 0.9390501688610441, 0.9311056496157967]
+Резьтат: D:\PROJECTS\CF18_data\data_processing\imu_calibration_parameters_with_sensitivity_5.json
+
+10 оборотов, по часовой стрелке
+D:\PROJECTS\CF18_data\data_processing\venv\Scripts\python.exe D:/PROJECTS/CF18_data/data_processing/main.py
+IMU 0 sensitivity: [0.9365465966090906, 0.9311107626129637, 0.9354712117117153]
+IMU 1 sensitivity: [0.9396344377455146, 0.9496190876186558, 0.9306647007860304]
+IMU 2 sensitivity: [0.93911418693415, 0.9562677986465924, 0.9299932210351519]
+
+Алгоритм расчета:
+- Получить данные для калибровки, совершить несколько полный оборотов вокруг каждой из трех осей ДУС.
+- Применить масштабные кооэффиценты, получить осмысленные физические величины.
+D:\PROJECTS\CF18_data\data_processing\main.py
+	def main_preprocess_calibration_gyro_data_2021_11_07_5_turnovers()
+	def main_preprocess_calibration_gyro_data_2021_11_07_10_turnovers()
+- Для каждой из осей определить интервалы данных применяемых для калибровки, отрезать лишнее
+- Рассчитать поправку на чувствительность гироскопа. Разделить реальное значение угла на полученное в эксперименте.
+
