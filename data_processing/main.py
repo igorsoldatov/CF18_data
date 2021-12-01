@@ -181,7 +181,7 @@ def apply_calibration(data, calibration_params):
         data.at[index, 'gz'] = ((row["gz"] * g_scale) - g_bias["z"]) * g_sens["z"]
 
 
-def transform_data(path, start_val, end_val, calib_param, out_file):
+def transform_data(path, start_val, end_val, calib_param, out_dir, out_file):
     with open(calib_param) as json_file:
         imu_calibration_params = json.load(json_file)
         sensors = get_available_sensors(path)
@@ -203,9 +203,9 @@ def transform_data(path, start_val, end_val, calib_param, out_file):
 
             apply_calibration(sub_data, imu_calibration_params[imu])
 
-            if not os.path.exists(out_file):
+            if not os.path.exists(f"../all_preprocessed_data/{out_dir}/{out_file}"):
                 os.makedirs(out_file)
-            sub_data.to_csv(f"{out_file}/imu{imu}-{out_file}.csv", index=False)
+            sub_data.to_csv(f"../all_preprocessed_data/{out_dir}/{out_file}/imu{imu}-{out_file}.csv", index=False)
 
 
 def data_preview(path, start_idx=0, end_idx=0):
@@ -249,70 +249,11 @@ def get_interval_from_control(_path):
     return start_val, end_val
 
 
-def main_1():
-    # calibration_data = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
-    # calculate_calibration_parameters(calibration_data, "imu_calibration_parameters.json")
-
-    boltanka1 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
-    # data_preview(boltanka1, start_idx=50260, end_idx=88600)
-    transform_data(boltanka1, start_val=50260, end_val=88600, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-08.07.2021-high-amplitude.csv")
-
-    boltanka2 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
-    # data_preview(boltanka2, start_idx=7335, end_idx=44100)
-    transform_data(boltanka2, start_val=7335, end_val=44100, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-08.07.2021-low-amplitude.csv")
-
-    boltanka3 = "../data_2021.07.06-boltanka/raw_cf18_data_preformat-boltanka1/"
-    # data_preview(boltanka3, start_idx=23485, end_idx=41200)
-    transform_data(boltanka3, start_val=23485, end_val=41200, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-06.07.2021-1.1.csv")
-    # data_preview(boltanka3, start_idx=61200, end_idx=105050)
-    transform_data(boltanka3, start_val=61200, end_val=105050, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-06.07.2021-1.2.csv")
-
-    boltanka5 = "../data_2021.07.06-boltanka/raw_cf18_data_preformat-boltanka2/"
-    # data_preview(boltanka5, start_idx=10200, end_idx=51860)
-    transform_data(boltanka5, start_val=10200, end_val=51860, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-06.07.2021-2.1.csv")
-
-    boltanka6 = "../data_2021.07.02-boltanka/raw_cf18_data_preformat-boltanka/"
-    # data_preview(boltanka6, start_idx=226400, end_idx=242600)
-    transform_data(boltanka6, start_val=226400, end_val=242600, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-02.07.2021-1.1.csv")
-    # data_preview(boltanka6, start_idx=465000, end_idx=485250)
-    transform_data(boltanka6, start_val=465000, end_val=485250, calib_param='imu_calibration_parameters.json'
-                   , out_file="boltanka-02.07.2021-1.2.csv")
-
-
 def main_2():
     boltanka1 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
     # data_preview(boltanka1, start_idx=50260, end_idx=88600)
     transform_data(boltanka1, start_val=0, end_val=0, calib_param='imu_calibration_parameters_blank.json'
                    , out_file="boltanka-08.07.2021-high-amplitude-calibration.csv")
-
-
-def main_03_09_2021():
-    path = "../data_2021.09.03-boltanka/"
-    calibration_parameters = 'imu_calibration_parameters_03.09.2021.json'
-    calibration_data = f"{path}raw_cf18_data-03.09.2021.15.44.49_low/"
-    # data_preview(calibration_data, start=0, end=0)
-    # calculate_calibration_parameters(calibration_data, calibration_parameters)
-
-    all_experiments = next(walk(path), (None, None, []))[1]
-    if True:
-        for experiment in all_experiments:
-            experiment_folder = f"{path}{experiment}/"
-            start_time, end_time = get_interval_from_control(experiment_folder)
-            print(experiment)
-            print(f"\tstart: {start_time}, end: {end_time}")
-            transform_data(experiment_folder, start_time, end_time, calib_param=calibration_parameters
-                           , out_file=f"[{experiment}]")
-
-    # preview data
-    for experiment in all_experiments:
-        for imu in range(3):
-            data_preview_calibrated(f"[{experiment}]/", f"imu{imu}-[{experiment}].csv", imu)
 
 
 def main_calibration_data():
@@ -376,11 +317,71 @@ def main_preprocess_calibration_gyro_data_2021_11_07_10_turnovers():
             print(f"IMU {imu} sensitivity: [{x}, {y}, {z}]")
 
 
+def main():
+    calib_param_file = "imu_calibration_parameters_with_sensitivity_5.json"
+
+    boltanka1 = "../data_2021.07.02-boltanka/raw_cf18_data_preformat-boltanka/"
+    # data_preview(boltanka1, start_idx=226400, end_idx=242600)
+    transform_data(boltanka1, start_val=226400, end_val=242600, calib_param=calib_param_file
+                   , out_dir="2021.07.02", out_file="boltanka-02.07.2021-1.1")
+    # data_preview(boltanka1, start_idx=465000, end_idx=485250)
+    transform_data(boltanka1, start_val=465000, end_val=485250, calib_param=calib_param_file
+                   , out_dir="2021.07.02", out_file="boltanka-02.07.2021-1.2")
+
+    boltanka2 = "../data_2021.07.06-boltanka/raw_cf18_data_preformat-boltanka1/"
+    # data_preview(boltanka2, start_idx=23485, end_idx=41200)
+    transform_data(boltanka2, start_val=23485, end_val=41200, calib_param=calib_param_file
+                   , out_dir="2021.07.06", out_file="boltanka-06.07.2021-1.1")
+    # data_preview(boltanka2, start_idx=61200, end_idx=105050)
+    transform_data(boltanka2, start_val=61200, end_val=105050, calib_param=calib_param_file
+                   , out_dir="2021.07.06", out_file="boltanka-06.07.2021-1.2")
+    boltanka3 = "../data_2021.07.06-boltanka/raw_cf18_data_preformat-boltanka2/"
+    # data_preview(boltanka3, start_idx=10200, end_idx=51860)
+    transform_data(boltanka3, start_val=10200, end_val=51860, calib_param=calib_param_file
+                   , out_dir="2021.07.06", out_file="boltanka-06.07.2021-2.1")
+
+    boltanka4 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    start_time, end_time = get_interval_from_control(boltanka4)
+    print(boltanka4)
+    print(f"\tstart: {start_time}, end: {end_time}")
+    # data_preview(boltanka4, start_idx=50260, end_idx=88600)
+    transform_data(boltanka4, start_val=start_time, end_val=end_time, calib_param=calib_param_file
+                   , out_dir="2021.07.08", out_file="boltanka-08.07.2021-high-amplitude")
+
+    boltanka5 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
+    start_time, end_time = get_interval_from_control(boltanka5)
+    print(boltanka5)
+    print(f"\tstart: {start_time}, end: {end_time}")
+    # data_preview(boltanka5, start_idx=7335, end_idx=44100)
+    transform_data(boltanka5, start_val=start_time, end_val=end_time, calib_param=calib_param_file
+                   , out_dir="2021.07.08", out_file="boltanka-08.07.2021-low-amplitude")
+
+    path = "../data_2021.09.03-boltanka/"
+    calibration_parameters = 'imu_calibration_parameters_with_sensitivity_5.json'
+    calibration_data = f"{path}raw_cf18_data-03.09.2021.15.44.49_low/"
+    # data_preview(calibration_data, start=0, end=0)
+    # calculate_calibration_parameters(calibration_data, calibration_parameters)
+
+    all_experiments = next(walk(path), (None, None, []))[1]
+    for experiment in all_experiments:
+        experiment_folder = f"{path}{experiment}/"
+        start_time, end_time = get_interval_from_control(experiment_folder)
+        print(experiment)
+        print(f"\tstart: {start_time}, end: {end_time}")
+        transform_data(experiment_folder, start_time, end_time, calib_param=calibration_parameters
+                       , out_dir="2021.09.03", out_file=f"{experiment}")
+
+    # preview data
+    if False:
+        for experiment in all_experiments:
+            for imu in range(3):
+                data_preview_calibrated(f"[{experiment}]/", f"imu{imu}-[{experiment}].csv", imu)
+
+
 if __name__ == '__main__':
-    # main_1()
-    # main_03_09_2021()
+    main()
     # main_calibration_data()
     # data_preview_calibrated("../all_preprocessed_data/", "imu0-boltanka-08.07.2021-high-amplitude.csv", 0)
     # main_2()
     # main_preprocess_calibration_gyro_data_2021_11_07_5_turnovers()
-    main_preprocess_calibration_gyro_data_2021_11_07_10_turnovers()
+    # main_preprocess_calibration_gyro_data_2021_11_07_10_turnovers()
