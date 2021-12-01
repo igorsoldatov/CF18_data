@@ -19,8 +19,8 @@ from imu_calibration import *
 start = [6235, 10585, 13910, 16990, 20295, 23420, 26860, 30050, 33460, 36620]
 end = [9330, 12470, 15805, 19030, 22145, 25330, 28770, 32190, 35350, 39140]
 # калибровка для данных полученных 03.09.2021, интервалы стабильного положения определены по датчику №0
-start = [2500, 9667, 13134, 16473, 19934, 23395, 26896, 30314, 33828, 37294, 40793]
-end = [7400, 11704, 15112, 18485, 21980, 25466, 28922, 32431, 35879, 39383, 63453]
+# start = [2500, 9667, 13134, 16473, 19934, 23395, 26896, 30314, 33828, 37294, 40793]
+# end = [7400, 11704, 15112, 18485, 21980, 25466, 28922, 32431, 35879, 39383, 63453]
 
 
 def get_available_sensors(path):
@@ -32,7 +32,7 @@ def get_available_sensors(path):
             continue
         file_type = parts[0]
         imu = parts[1]
-        if file_type == "cf":
+        if file_type == "cf" or file_type == "gyro_accel" or file_type == "imu_data":
             if imu not in imus:
                 imus.append(imu)
     return imus
@@ -47,7 +47,7 @@ def get_files(path, imu):
             continue
         file_type = parts[0]
         imu_param = parts[1]
-        if file_type == "cf" and imu_param == imu:
+        if imu_param == imu:
             pack_id = int(parts[2])
             file_names[pack_id] = file_name
     file_names_sorted = collections.OrderedDict(sorted(file_names.items()))
@@ -187,6 +187,8 @@ def transform_data(path, start_val, end_val, calib_param, out_file):
         sensors = get_available_sensors(path)
         for imu in sensors:
             sub_data = read_and_concat_csv(path, imu)
+            if 'server_time' not in sub_data.columns:
+                sub_data['server_time'] = 0
             if type(start_val) == datetime and type(end_val) == datetime:
                 start_idx, end_idx = 0, 0
                 for index, row in sub_data.iterrows():
@@ -217,8 +219,10 @@ def data_preview(path, start_idx=0, end_idx=0):
             times = times[start_idx:end_idx]
         a_ids = [3, 4, 5]
         accel = {"title": "Accelerometer", "ids": a_ids}
+        g_ids = [6, 7, 8]
+        gyro = {"title": "Gyroscope", "ids": g_ids}
         # show_data(data_raw, times, imu, accel)
-        show_data(data_raw, [*range(len(data_raw))], imu, accel)
+        show_data(data_raw, [*range(len(data_raw))], imu, gyro)
 
 
 def data_preview_calibrated(path, file, imu):
@@ -246,39 +250,46 @@ def get_interval_from_control(_path):
 
 
 def main_1():
-    # calibration_data = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    # calibration_data = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
     # calculate_calibration_parameters(calibration_data, "imu_calibration_parameters.json")
 
-    boltanka1 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
-    # data_preview(boltanka1, start=50260, end=88600)
-    transform_data(boltanka1, start=50260, end=88600, calib_param='imu_calibration_parameters.json'
+    boltanka1 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    # data_preview(boltanka1, start_idx=50260, end_idx=88600)
+    transform_data(boltanka1, start_val=50260, end_val=88600, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-08.07.2021-high-amplitude.csv")
 
-    boltanka2 = "../data_08.07.2021-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
-    # data_preview(boltanka2, start=7335, end=44100)
-    transform_data(boltanka2, start=7335, end=44100, calib_param='imu_calibration_parameters.json'
+    boltanka2 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.34.48-boltanka_2_low/"
+    # data_preview(boltanka2, start_idx=7335, end_idx=44100)
+    transform_data(boltanka2, start_val=7335, end_val=44100, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-08.07.2021-low-amplitude.csv")
 
-    boltanka3 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka1/"
-    # data_preview(boltanka3, start=23485, end=41200)
-    transform_data(boltanka3, start=23485, end=41200, calib_param='imu_calibration_parameters.json'
+    boltanka3 = "../data_2021.07.06-boltanka/raw_cf18_data_preformat-boltanka1/"
+    # data_preview(boltanka3, start_idx=23485, end_idx=41200)
+    transform_data(boltanka3, start_val=23485, end_val=41200, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-06.07.2021-1.1.csv")
-    # data_preview(boltanka3, start=61200, end=105050)
-    transform_data(boltanka3, start=61200, end=105050, calib_param='imu_calibration_parameters.json'
+    # data_preview(boltanka3, start_idx=61200, end_idx=105050)
+    transform_data(boltanka3, start_val=61200, end_val=105050, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-06.07.2021-1.2.csv")
 
-    boltanka5 = "../data_06.07.2021-boltanka/raw_cf18_data_preformat-boltanka2/"
-    # data_preview(boltanka5, start=10200, end=51860)
-    transform_data(boltanka5, start=10200, end=51860, calib_param='imu_calibration_parameters.json'
+    boltanka5 = "../data_2021.07.06-boltanka/raw_cf18_data_preformat-boltanka2/"
+    # data_preview(boltanka5, start_idx=10200, end_idx=51860)
+    transform_data(boltanka5, start_val=10200, end_val=51860, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-06.07.2021-2.1.csv")
 
-    boltanka6 = "../data_02.07.2021-boltanka/raw_cf18_data_preformat-boltanka/"
-    # data_preview(boltanka6, start=226400, end=242600)
-    transform_data(boltanka6, start=226400, end=242600, calib_param='imu_calibration_parameters.json'
+    boltanka6 = "../data_2021.07.02-boltanka/raw_cf18_data_preformat-boltanka/"
+    # data_preview(boltanka6, start_idx=226400, end_idx=242600)
+    transform_data(boltanka6, start_val=226400, end_val=242600, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-02.07.2021-1.1.csv")
-    # data_preview(boltanka6, start=465000, end=485250)
-    transform_data(boltanka6, start=465000, end=485250, calib_param='imu_calibration_parameters.json'
+    # data_preview(boltanka6, start_idx=465000, end_idx=485250)
+    transform_data(boltanka6, start_val=465000, end_val=485250, calib_param='imu_calibration_parameters.json'
                    , out_file="boltanka-02.07.2021-1.2.csv")
+
+
+def main_2():
+    boltanka1 = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    # data_preview(boltanka1, start_idx=50260, end_idx=88600)
+    transform_data(boltanka1, start_val=0, end_val=0, calib_param='imu_calibration_parameters_blank.json'
+                   , out_file="boltanka-08.07.2021-high-amplitude-calibration.csv")
 
 
 def main_03_09_2021():
@@ -304,7 +315,72 @@ def main_03_09_2021():
             data_preview_calibrated(f"[{experiment}]/", f"imu{imu}-[{experiment}].csv", imu)
 
 
+def main_calibration_data():
+    calibration_data = "../data_2021.07.08-boltanka/raw_cf18_data-08.07.2021.12.10.26-boltanka_1_high+calibration/"
+    data_preview(calibration_data, start_idx=0, end_idx=0)
+    calculate_calibration_parameters(calibration_data, "imu_calibration_parameters_tmp.json")
+
+    # data = "../data_2021.07.01-calibration/raw_calib_data/"
+    # transform_data(data, start_val=0, end_val=0, calib_param='imu_calibration_parameters.json'
+    #               , out_file="calibration_different_acceleration.csv")
+
+
+def calculate_gyro_sensitivity(file, start_idx, end_idx, grad, idx):
+    dd = genfromtxt(file, delimiter=',', skip_header=1)
+    times = (dd[start_idx+1:end_idx+1, 2] - dd[start_idx:end_idx, 2]) / 1000.0
+    angular_velocity = dd[start_idx:end_idx, idx]
+    angles = angular_velocity * times
+    total_angle = np.abs(np.sum(angles))
+    return grad / total_angle
+
+
+def main_preprocess_calibration_gyro_data_2021_11_07_5_turnovers():
+    # данные по 5-и оборотам
+    step = 1
+    if step == 0:
+        data_dir = "D:/ROBOTS/__ПРОЕКТЫ_В_РАБОТЕ/airplane_gaze_imu/colibration_gyro_2021.11.07-5_turnovers/data/"
+        data_preview(data_dir, start_idx=0, end_idx=0)
+        # transform_data(data_dir, start_val=0, end_val=0, calib_param='imu_calibration_parameters.json'
+        #               , out_file="data_for_calibration_gyro_sensitivity_2021_11_07-5_turnovers")
+    elif step == 1:
+        grad = 360 * 5
+        dir = "data_for_calibration_gyro_sensitivity_2021_11_07-5_turnovers"
+        files = {"0": f"./{dir}/imu0-data_for_calibration_gyro_2021_11_07.csv.csv",
+                 "1": f"./{dir}/imu1-data_for_calibration_gyro_2021_11_07.csv.csv",
+                 "2": f"./{dir}/imu2-data_for_calibration_gyro_2021_11_07.csv.csv"}
+        for imu, file in files.items():
+            x = calculate_gyro_sensitivity(file, 12282, 19268, grad, 6)
+            y = calculate_gyro_sensitivity(file, 20345, 26855, grad, 7)
+            z = calculate_gyro_sensitivity(file, 360, 11114, grad, 8)
+            print(f"IMU {imu} sensitivity: [{x}, {y}, {z}]")
+
+
+def main_preprocess_calibration_gyro_data_2021_11_07_10_turnovers():
+    # данные по 10-и оборотам
+    step = 1
+    if step == 0:
+        data_dir = "D:/ROBOTS/__ПРОЕКТЫ_В_РАБОТЕ/airplane_gaze_imu/colibration_gyro_2021.11.07-10_turnovers/data/"
+        # data_preview(data_dir, start_idx=0, end_idx=0)
+        transform_data(data_dir, start_val=0, end_val=0, calib_param='imu_calibration_parameters.json'
+                       , out_file="data_for_calibration_gyro_sensitivity_2021_11_07-10_turnovers")
+    elif step == 1:
+        grad = 360 * 10
+        dir = "data_for_calibration_gyro_sensitivity_2021_11_07-10_turnovers"
+        files = {"0": f"./{dir}/imu0-data_for_calibration_gyro_sensitivity_2021_11_07-10_turnovers.csv",
+                 "1": f"./{dir}/imu1-data_for_calibration_gyro_sensitivity_2021_11_07-10_turnovers.csv",
+                 "2": f"./{dir}/imu2-data_for_calibration_gyro_sensitivity_2021_11_07-10_turnovers.csv"}
+        for imu, file in files.items():
+            x = calculate_gyro_sensitivity(file, 10472, 17892, grad, 6)
+            y = calculate_gyro_sensitivity(file, 18334, 28439, grad, 7)
+            z = calculate_gyro_sensitivity(file, 208, 9206, grad, 8)
+            print(f"IMU {imu} sensitivity: [{x}, {y}, {z}]")
+
+
 if __name__ == '__main__':
     # main_1()
-    main_03_09_2021()
+    # main_03_09_2021()
+    # main_calibration_data()
     # data_preview_calibrated("../all_preprocessed_data/", "imu0-boltanka-08.07.2021-high-amplitude.csv", 0)
+    # main_2()
+    # main_preprocess_calibration_gyro_data_2021_11_07_5_turnovers()
+    main_preprocess_calibration_gyro_data_2021_11_07_10_turnovers()
